@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:fluffychat/pages/login_web/login_view_web.dart';
+import 'package:fluffychat/pages/login_web/login_web.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:go_router/go_router.dart';
@@ -35,6 +38,7 @@ import 'package:fluffychat/widgets/layouts/empty_page.dart';
 import 'package:fluffychat/widgets/layouts/two_column_layout.dart';
 import 'package:fluffychat/widgets/log_view.dart';
 import 'package:fluffychat/widgets/matrix.dart';
+import 'package:matrix/matrix.dart';
 
 abstract class AppRoutes {
   static FutureOr<String?> loggedInRedirect(
@@ -47,35 +51,38 @@ abstract class AppRoutes {
     BuildContext context,
     GoRouterState state,
   ) =>
-      Matrix.of(context).client.isLogged() ? null : '/home';
+      Matrix.of(context).client.isLogged() ? null : '/login';
 
   AppRoutes();
 
   static final List<RouteBase> routes = [
     GoRoute(
-      path: '/',
-      redirect: (context, state) =>
-          Matrix.of(context).client.isLogged() ? '/rooms' : '/home',
-    ),
+        path: '/',
+        redirect: (context, state) {
+          final credentialsUrl = state.uri.queryParameters['credentials_url'];
+          if (credentialsUrl != null) {
+            return '/login?credentials_url=$credentialsUrl';
+          }
+          return Matrix.of(context).client.isLogged() ? '/rooms' : '/login';
+        }),
     GoRoute(
-      path: '/home',
-      pageBuilder: (context, state) => defaultPageBuilder(
-        context,
-        state,
-        const HomeserverPicker(addMultiAccount: false),
-      ),
-      redirect: loggedInRedirect,
-      routes: [
-        GoRoute(
-          path: 'login',
-          pageBuilder: (context, state) => defaultPageBuilder(
-            context,
-            state,
-            const Login(),
-          ),
-          redirect: loggedInRedirect,
-        ),
-      ],
+      path: '/login',
+      redirect: (context, state) {
+        if (Matrix.of(context).client.isLogged()) {
+          return '/rooms';
+        }
+      },
+      pageBuilder: (context, state) {
+        final credentialsUrl =
+            state.uri.queryParameters['credentials_url'] != null
+                ? Uri.parse(state.uri.queryParameters['credentials_url']!)
+                : null;
+        return defaultPageBuilder(
+          context,
+          state,
+          LoginWeb(credentialsUrl: credentialsUrl),
+        );
+      },
     ),
     GoRoute(
       path: '/logs',
