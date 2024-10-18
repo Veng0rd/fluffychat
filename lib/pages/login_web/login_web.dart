@@ -32,7 +32,7 @@ class LoginController extends State<LoginWeb> {
   @override
   void initState() {
     super.initState();
-    if (widget.credentialsUrl != null && !widget.credentialsUrl!.hasEmptyPath) {
+    if (widget.credentialsUrl != null && widget.credentialsUrl?.hasScheme) {
       _processCredentials(widget.credentialsUrl!);
     } else {
       error = 'Invalid login link';
