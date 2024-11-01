@@ -67,8 +67,20 @@ abstract class AppRoutes {
         }),
     GoRoute(
       path: '/login',
-      redirect: (context, state) {
-        if (Matrix.of(context).client.isLogged()) {
+      redirect: (context, state) async {
+        print(state.uri);
+        final credentialsUrl = state.uri.queryParameters['credentials_url'];
+        final matrixClient = Matrix.of(context).client;
+
+        if (matrixClient.isLogged() && credentialsUrl != null) {
+          await matrixClient.logout();
+          print(matrixClient.clientName);
+          print('Logged out and redirecting to login');
+          print(credentialsUrl);
+          return '/login?credentials_url=$credentialsUrl';
+        }
+        if (matrixClient.isLogged()) {
+          print(credentialsUrl);
           return '/rooms';
         }
       },
