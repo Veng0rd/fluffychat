@@ -38,7 +38,6 @@ import 'package:fluffychat/widgets/layouts/empty_page.dart';
 import 'package:fluffychat/widgets/layouts/two_column_layout.dart';
 import 'package:fluffychat/widgets/log_view.dart';
 import 'package:fluffychat/widgets/matrix.dart';
-import 'package:matrix/matrix.dart';
 
 abstract class AppRoutes {
   static FutureOr<String?> loggedInRedirect(
@@ -67,8 +66,10 @@ abstract class AppRoutes {
         }),
     GoRoute(
       path: '/login',
-      redirect: (context, state) {
-        if (Matrix.of(context).client.isLogged()) {
+      redirect: (context, state) async {
+        final credentialsUrl = state.uri.queryParameters['credentials_url'];
+        final matrixClient = Matrix.of(context).client;
+        if (matrixClient.isLogged() && credentialsUrl == null) {
           return '/rooms';
         }
       },

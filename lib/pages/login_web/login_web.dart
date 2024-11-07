@@ -41,16 +41,27 @@ class LoginController extends State<LoginWeb> {
 
   Future<void> _processCredentials(Uri credentialsUrl) async {
     setState(() => loading = true);
-
+    final matrix = Matrix.of(context);
     try {
       final response = await http.get(credentialsUrl);
       if (response.statusCode == 200) {
+        Logs().d('SYNC OFF');
+        matrix.client.backgroundSync = false;
         final credentialsData = jsonDecode(response.body);
-        _autoLoginWithCredentials(credentialsData);
+        if (matrix.client.isLogged()) {
+          final loggedOut = await _logoutAction();
+          if (loggedOut) {
+            await _autoLoginWithCredentials(credentialsData);
+          }
+        } else {
+          await _autoLoginWithCredentials(credentialsData);
+        }
       } else {
         throw Exception('Invalid credentials');
       }
     } catch (e) {
+      Logs().d('SYNC ON');
+      matrix.client.backgroundSync = true;
       Logs().i(e.toString());
       setState(() => error = e.toString());
       setState(() => loading = false);
@@ -98,12 +109,26 @@ class LoginController extends State<LoginWeb> {
         password: password,
         initialDeviceDisplayName: PlatformInfos.clientName,
       );
+      Logs().d('SYNC ON');
+      matrix.client.backgroundSync = true;
     } on MatrixException catch (exception) {
       setState(() => error = exception.errorMessage);
       return setState(() => loading = false);
     } catch (exception) {
       setState(() => error = exception.toString());
       return setState(() => loading = false);
+    }
+  }
+
+  Future<bool> _logoutAction() async {
+    final matrix = Matrix.of(context);
+    try {
+      await matrix.client.logout();
+      return true;
+    } catch (exception) {
+      setState(() => error = exception.toString());
+      setState(() => loading = false);
+      return false;
     }
   }
 
